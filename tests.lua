@@ -110,3 +110,12 @@ assert(decode('\xbf' .. ('A'):rep(31)) == ('A'):rep(31))
 
 -- arrays
 assert(#decode('\x90') == 0)
+
+-- multiple decodings and start from different positions
+do
+  local binary, value, position = '\xcc\xff\xc2\xc3'
+  value, position = decode(binary, position); assert(value == 255) -- decode 2 bytes
+  value, position = decode(binary, position); assert(value == false) -- decode 1 byte
+  value, position = decode(binary, position); assert(value == true) -- decode 1 byte
+  assert(position == 5) -- 5th byte would be the next in the "stream"
+end
