@@ -52,8 +52,11 @@ msgpack.config.binary_strings = false -- use the MessagePack string type
 
 > **NOTE:** Empty Lua tables will be encoded as empty arrays!
 
-### msgpack.decode(binary_data)
-Decode the given MessagePack binary string to a corresponding Lua value. It will return the decoded Lua value or ```nil``` plus an error message if decoding went wrong.
+### msgpack.decode(binary_data[, position])
+Decode the given MessagePack binary string to a corresponding Lua value. It will return the decoded Lua value and the position for next byte in stream
+or ```nil``` plus an error message if decoding went wrong. You can use the returned position to decode multiple MessagePack values in a stream.
+
+The optional position argument is used to start the decoding at a specific position inside the the binary_data string.
 
 > **NOTE:** Extended types are not supported. Decoding will fail!
 
