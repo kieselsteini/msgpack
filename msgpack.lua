@@ -31,7 +31,7 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.1.0',
+  _VERSION = '0.2.0',
 
   config = {
     single_precision = false,   -- use 32-bit floats or 64-bit floats
@@ -243,7 +243,7 @@ encoder_table = {
         elements[#elements + 1] = encode_data(k)
         elements[#elements + 1] = encode_data(v)
       end
-      
+
       local length = #elements // 2
       if length <= 0xf then
         return ('>B'):pack(0x80 + length) .. table.concat(elements)
@@ -269,11 +269,11 @@ function msgpack.encode(data)
   end
 end
 
-function msgpack.decode(data)
-  local input = { data = data, pos = 1 }
+function msgpack.decode(data, position)
+  local input = { data = data, pos = position or 1 }
   local ok, result = pcall(decode_next, input)
   if ok then
-    return result
+    return result, input.pos
   else
     return nil, 'cannot decode MessagePack'
   end
