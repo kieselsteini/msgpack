@@ -12,7 +12,7 @@ Features:
 - can distinguish between UTF-8 strings and binary data
 - public domain license (http://unlicense.org)
 - pretty fast decoding
-- config variables to switch between string/binary and float32/float64 encoding
+- config variables to switch between float32/float64 encoding
 
 What's missing:
 - extendend types ```fixent```
