@@ -31,7 +31,7 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.2.2',
+  _VERSION = '0.2.3',
 
   config = {
     single_precision = false,   -- use 32-bit floats or 64-bit floats
@@ -45,6 +45,7 @@ local msgpack = {
 --]]----------------------------------------------------------------------------
 local type = type
 local pairs = pairs
+local select = select
 local table = require('table')
 local string = require('string')
 local math = require('math')
@@ -275,7 +276,6 @@ function msgpack.decode(input, position)
   if ok then
     return result, ctx.position
   else
-    print('E', result)
     return nil, 'cannot decode MessagePack'
   end
 end
