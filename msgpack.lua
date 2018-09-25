@@ -31,7 +31,7 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.2.3',
+  _VERSION = '0.3.0',
 
   config = {
     single_precision = false,   -- use 32-bit floats or 64-bit floats
@@ -261,16 +261,29 @@ encoder_table = {
 --[[----------------------------------------------------------------------------
       PUBLIC API
 --]]----------------------------------------------------------------------------
-function msgpack.encode(value)
+function msgpack.encode_one(value)
   local ok, result = pcall(encode_value, value)
   if ok then
     return result
   else
-    return nil, 'cannot encode value to MessagePack'
+    return nil, string.format('cannot encode value "%s" to MessagePack', type(value))
   end
 end
 
-function msgpack.decode(input, position)
+function msgpack.encode(...)
+  local result = {}
+  for i = 1, select('#', ...) do
+    local data, err = msgpack.encode_one(select(i, ...))
+    if data then
+      result[#result + 1] = data
+    else
+      return nil, err
+    end
+  end
+  return table.concat(result)
+end
+
+function msgpack.decode_one(input, position)
   local ctx = { input = input, position = position or 1 }
   local ok, result = pcall(decode_next, ctx)
   if ok then
@@ -278,6 +291,20 @@ function msgpack.decode(input, position)
   else
     return nil, 'cannot decode MessagePack'
   end
+end
+
+function msgpack.decode(input, position)
+  local ctx = { input = input, position = position or 1 }
+  local result = {}
+  while ctx.position <= #ctx.input do
+    local ok, value = pcall(decode_next, ctx)
+    if ok then
+      result[#result + 1] = value
+    else
+      return nil, 'cannot decode MessagePack'
+    end
+  end
+  return table.unpack(result)
 end
 
 return msgpack

@@ -27,7 +27,7 @@ local binary_data = msgpack.encode(lua_value) -- encode Lua value to MessagePack
 
 ## API
 
-### msgpack.encode(value)
+### msgpack.encode_one(value)
 Encodes the given Lua value to a binary MessagePack representation. It will return the binary string on succes or ```nil``` plus an error message if it fails.
 
 Please note that Lua cannot distinguish between UTF-8 strings and binary data. They are just Lua strings. So if you want to encode Lua strings to MessagePack binary data you have to set the config variable.
@@ -52,7 +52,14 @@ msgpack.config.binary_strings = false -- use the MessagePack string type
 
 > **NOTE:** Empty Lua tables will be encoded as empty arrays!
 
-### msgpack.decode(binary_data[, position])
+### msgpack.encode(...)
+Encodes all given values to a binary MessagePack representation. It will return the binary string or ```nil``` plus an error message if it fails.
+
+```lua
+local binary = msgpack.encode('Hello', 1024, true, { 2, 3, 4 })
+```
+
+### msgpack.decode_one(binary_data[, position])
 Decode the given MessagePack binary string to a corresponding Lua value. It will return the decoded Lua value and the position for next byte in stream
 or ```nil``` plus an error message if decoding went wrong. You can use the returned position to decode multiple MessagePack values in a stream.
 
@@ -65,6 +72,13 @@ The optional position argument is used to start the decoding at a specific posit
 > **NOTE:** Arrays will be decoded as Lua tables starting with index 1 (like Lua uses tables as arrays)
 
 > **NOTE:** Values which are ```nil``` will cause the key, value pair to disappear in a Lua table (that's how it works in Lua)
+
+### msgpack.decode(binary_data[, position])
+Decode the given MessagePack binary string to one or more Lua values. It will return all decoded Lua values or ```nil``` plus an error message if decoding failed.
+
+```lua
+local a, b, c = msgpack.decode(binary)
+```
 
 ## License
 ```

@@ -4,6 +4,7 @@
 local msgpack = require('msgpack')
 local encode = msgpack.encode
 local decode = msgpack.decode
+local decode_one = msgpack.decode_one
 
 --[[----------------------------------------------------------------------------
       ENCODER Tests
@@ -114,8 +115,16 @@ assert(#decode('\x90') == 0)
 -- multiple decodings and start from different positions
 do
   local binary, value, position = '\xcc\xff\xc2\xc3'
-  value, position = decode(binary, position); assert(value == 255) -- decode 2 bytes
-  value, position = decode(binary, position); assert(value == false) -- decode 1 byte
-  value, position = decode(binary, position); assert(value == true) -- decode 1 byte
+  value, position = decode_one(binary, position); assert(value == 255) -- decode 2 bytes
+  value, position = decode_one(binary, position); assert(value == false) -- decode 1 byte
+  value, position = decode_one(binary, position); assert(value == true) -- decode 1 byte
   assert(position == 5) -- 5th byte would be the next in the "stream"
+end
+
+-- decode multiple values
+do
+  local a, b, c = decode('\xe0\xa1\x41\xc3')
+  assert(a == -32)
+  assert(b == 'A')
+  assert(c == true)
 end
