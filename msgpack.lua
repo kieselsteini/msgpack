@@ -31,11 +31,7 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.4.0',
-
-  config = {
-    single_precision = false,   -- use 32-bit floats or 64-bit floats
-  },
+  _VERSION = '0.5.0',
 }
 
 
@@ -215,7 +211,8 @@ encoder_table = {
         end
       end
     else
-      if msgpack.config.single_precision then
+      local converted = ('>f'):unpack(('>f'):pack(value)) -- check if we can use 32-bit floats
+      if converted == value then
         return ('>B f'):pack(0xca, value)
       else
         return ('>B d'):pack(0xcb, value)

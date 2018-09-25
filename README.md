@@ -12,7 +12,6 @@ Features:
 - can distinguish between UTF-8 strings and binary data
 - public domain license (http://unlicense.org)
 - pretty fast decoding
-- config variables to switch between float32/float64 encoding
 
 What's missing:
 - extendend types ```fixent```
@@ -31,15 +30,9 @@ local binary_data = msgpack.encode(lua_value) -- encode Lua value to MessagePack
 ### msgpack.encode_one(value)
 Encodes the given Lua value to a binary MessagePack representation. It will return the binary string on succes or ```nil``` plus an error message if it fails.
 
-There is also no way to determine if a Lua number should be encoded as a 32-bit float or 64-bit float. If you want a specific representation, please set the corresponding config variable.
+The encoder will encode Lua strings as MessagePack strings when they are properly UTF-8 encoded otherwise they will become MessagePack binary objects.
 
-Using 32-bit/64-bit floats to encode Lua numbers:
-```lua
-msgpack.config.single_precision = true -- encode to 32-bit floats
-msgpack.config.single_precision = false -- encode to 64-bit floats
-```
-
-> **NOTE:** The config variables only affect the encoding process
+There is also a check if a Lua number can be lossless encoded as a 32-bit float.
 
 > **NOTE:** Empty Lua tables will be encoded as empty arrays!
 
