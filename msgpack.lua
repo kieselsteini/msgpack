@@ -31,13 +31,23 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.2.1',
+  _VERSION = '0.2.2',
 
   config = {
     single_precision = false,   -- use 32-bit floats or 64-bit floats
     binary_strings = false,     -- encode Lua strings a binary data or string data
   },
 }
+
+
+--[[----------------------------------------------------------------------------
+      Speed optimizations
+--]]----------------------------------------------------------------------------
+local type = type
+local pairs = pairs
+local table = require('table')
+local string = require('string')
+local math = require('math')
 
 
 --[[----------------------------------------------------------------------------
@@ -130,13 +140,13 @@ end
 --]]----------------------------------------------------------------------------
 local encoder_table -- forward reference
 
-local function encode_data(data)
-  return encoder_table[type(data)](data)
+local function encode_value(value)
+  return encoder_table[type(value)](value)
 end
 
-local function check_array(data) -- simple function to verify a table is a proper array
+local function check_array(value) -- simple function to verify a table is a proper array
   local expected = 1
-  for k, v in pairs(data) do
+  for k in pairs(value) do
     if k ~= expected then return false end
     expected = expected + 1
   end
@@ -149,74 +159,74 @@ encoder_table = {
     return ('>B'):pack(0xc0)
   end,
 
-  boolean = function(data)
-    return ('>B'):pack(data and 0xc3 or 0xc2)
+  ['boolean'] = function(value)
+    return ('>B'):pack(value and 0xc3 or 0xc2)
   end,
 
-  string = function(data)
-    local length = #data
+  ['string'] = function(value)
+    local length = #value
     if msgpack.config.binary_strings then
       if length <= 0xff then
-        return ('>B s1'):pack(0xc4, data)
+        return ('>B s1'):pack(0xc4, value)
       elseif length <= 0xffff then
-        return ('>B s2'):pack(0xc5, data)
+        return ('>B s2'):pack(0xc5, value)
       else
-        return ('>B s4'):pack(0xc6, data)
+        return ('>B s4'):pack(0xc6, value)
       end
     else
       if length < 32 then
-        return ('>B'):pack(0xa0 + length) .. data
+        return ('>B'):pack(0xa0 + length) .. value
       elseif length <= 0xff then
-        return ('>B s1'):pack(0xd9, data)
+        return ('>B s1'):pack(0xd9, value)
       elseif length <= 0xffff then
-        return ('>B s2'):pack(0xda, data)
+        return ('>B s2'):pack(0xda, value)
       else
-        return ('>B s4'):pack(0xdb, data)
+        return ('>B s4'):pack(0xdb, value)
       end
     end
   end,
 
-  number = function(data)
-    if math.type(data) == 'integer' then
-      if data >= 0 then
-        if data <= 0x7f then
-          return ('>B'):pack(data)
-        elseif data <= 0xff then
-          return ('>B I1'):pack(0xcc, data)
-        elseif data <= 0xffff then
-          return ('>B I2'):pack(0xcd, data)
-        elseif data <= 0xffffffff then
-          return ('>B I4'):pack(0xce, data)
+  ['number'] = function(value)
+    if math.type(value) == 'integer' then
+      if value >= 0 then
+        if value <= 0x7f then
+          return ('>B'):pack(value)
+        elseif value <= 0xff then
+          return ('>B I1'):pack(0xcc, value)
+        elseif value <= 0xffff then
+          return ('>B I2'):pack(0xcd, value)
+        elseif value <= 0xffffffff then
+          return ('>B I4'):pack(0xce, value)
         else
-          return ('>B I8'):pack(0xcf, data)
+          return ('>B I8'):pack(0xcf, value)
         end
       else
-        if data >= -32 then
-          return ('>B'):pack(0xe0 + data + 32)
-        elseif data >= -127 then
-          return ('>B i1'):pack(0xd0, data)
-        elseif data >= -32767 then
-          return ('>B i2'):pack(0xd1, data)
-        elseif data >= -2147483647 then
-          return ('>B i4'):pack(0xd2, data)
+        if value >= -32 then
+          return ('>B'):pack(0xe0 + value + 32)
+        elseif value >= -127 then
+          return ('>B i1'):pack(0xd0, value)
+        elseif value >= -32767 then
+          return ('>B i2'):pack(0xd1, value)
+        elseif value >= -2147483647 then
+          return ('>B i4'):pack(0xd2, value)
         else
-          return ('>B i8'):pack(0xd3, data)
+          return ('>B i8'):pack(0xd3, value)
         end
       end
     else
       if msgpack.config.single_precision then
-        return ('>B f'):pack(0xca, data)
+        return ('>B f'):pack(0xca, value)
       else
-        return ('>B d'):pack(0xcb, data)
+        return ('>B d'):pack(0xcb, value)
       end
     end
   end,
 
-  table = function(data)
-    if check_array(data) then
+  ['table'] = function(value)
+    if check_array(value) then
       local elements = {}
-      for i, v in pairs(data) do
-        elements[i] = encode_data(v)
+      for i, v in pairs(value) do
+        elements[i] = encode_value(v)
       end
 
       local length = #elements
@@ -229,9 +239,9 @@ encoder_table = {
       end
     else
       local elements = {}
-      for k, v in pairs(data) do
-        elements[#elements + 1] = encode_data(k)
-        elements[#elements + 1] = encode_data(v)
+      for k, v in pairs(value) do
+        elements[#elements + 1] = encode_value(k)
+        elements[#elements + 1] = encode_value(v)
       end
 
       local length = #elements // 2
@@ -250,12 +260,12 @@ encoder_table = {
 --[[----------------------------------------------------------------------------
       PUBLIC API
 --]]----------------------------------------------------------------------------
-function msgpack.encode(data)
-  local ok, result = pcall(encode_data, data)
+function msgpack.encode(value)
+  local ok, result = pcall(encode_value, value)
   if ok then
     return result
   else
-    return nil, 'cannot encode data to MessagePack'
+    return nil, 'cannot encode value to MessagePack'
   end
 end
 
