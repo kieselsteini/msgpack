@@ -31,7 +31,7 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.2.0',
+  _VERSION = '0.2.1',
 
   config = {
     single_precision = false,   -- use 32-bit floats or 64-bit floats
@@ -45,29 +45,29 @@ local msgpack = {
 --]]----------------------------------------------------------------------------
 local decoder_table -- forward reference
 
-local function unpack(fmt, input)
-  local value, pos = fmt:unpack(input.data, input.pos)
-  input.pos = pos
+local function unpack(ctx, fmt)
+  local value, position = fmt:unpack(ctx.input, ctx.position)
+  ctx.position = position
   return value
 end
 
-local function decode_next(input)
-  return decoder_table[unpack('>B', input)](input)
+local function decode_next(ctx)
+  return decoder_table[unpack(ctx, '>B')](ctx)
 end
 
-local function decode_array(input, length)
+local function decode_array(ctx, length)
   local new = {}
   for i = 1, length do
-    new[i] = decode_next(input)
+    new[i] = decode_next(ctx)
   end
   return new
 end
 
-local function decode_map(input, length)
+local function decode_map(ctx, length)
   local new = {}
   for i = 1, length do
-    local k = decode_next(input)
-    local v = decode_next(input)
+    local k = decode_next(ctx)
+    local v = decode_next(ctx)
     new[k] = v
   end
   return new
@@ -78,60 +78,50 @@ decoder_table = {
   [0xc0] = function() return nil end,
   [0xc2] = function() return false end,
   [0xc3] = function() return true end,
-  [0xc4] = function(input) return unpack('>s1', input) end,
-  [0xc5] = function(input) return unpack('>s2', input) end,
-  [0xc6] = function(input) return unpack('>s4', input) end,
-  [0xca] = function(input) return unpack('>f', input) end,
-  [0xcb] = function(input) return unpack('>d', input) end,
-  [0xcc] = function(input) return unpack('>I1', input) end,
-  [0xcd] = function(input) return unpack('>I2', input) end,
-  [0xce] = function(input) return unpack('>I4', input) end,
-  [0xcf] = function(input) return unpack('>I8', input) end,
-  [0xd0] = function(input) return unpack('>i1', input) end,
-  [0xd1] = function(input) return unpack('>i2', input) end,
-  [0xd2] = function(input) return unpack('>i4', input) end,
-  [0xd3] = function(input) return unpack('>i8', input) end,
-  [0xd9] = function(input) return unpack('>s1', input) end,
-  [0xda] = function(input) return unpack('>s2', input) end,
-  [0xdb] = function(input) return unpack('>s4', input) end,
-  [0xdc] = function(input) return decode_array(input, unpack('>I2', input)) end,
-  [0xdd] = function(input) return decode_array(input, unpack('>I4', input)) end,
-  [0xde] = function(input) return decode_map(input, unpack('>I2', input)) end,
-  [0xdf] = function(input) return decode_map(input, unpack('>I4', input)) end,
+  [0xc4] = function(ctx) return unpack(ctx, '>s1') end,
+  [0xc5] = function(ctx) return unpack(ctx, '>s2') end,
+  [0xc6] = function(ctx) return unpack(ctx, '>s4') end,
+  [0xca] = function(ctx) return unpack(ctx, '>f') end,
+  [0xcb] = function(ctx) return unpack(ctx, '>d') end,
+  [0xcc] = function(ctx) return unpack(ctx, '>I1') end,
+  [0xcd] = function(ctx) return unpack(ctx, '>I2') end,
+  [0xce] = function(ctx) return unpack(ctx, '>I4') end,
+  [0xcf] = function(ctx) return unpack(ctx, '>I8') end,
+  [0xd0] = function(ctx) return unpack(ctx, '>i1') end,
+  [0xd1] = function(ctx) return unpack(ctx, '>i2') end,
+  [0xd2] = function(ctx) return unpack(ctx, '>i4') end,
+  [0xd3] = function(ctx) return unpack(ctx, '>i8') end,
+  [0xd9] = function(ctx) return unpack(ctx, '>s1') end,
+  [0xda] = function(ctx) return unpack(ctx, '>s2') end,
+  [0xdb] = function(ctx) return unpack(ctx, '>s4') end,
+  [0xdc] = function(ctx) return decode_array(ctx, unpack(ctx, '>I2')) end,
+  [0xdd] = function(ctx) return decode_array(ctx, unpack(ctx, '>I4')) end,
+  [0xde] = function(ctx) return decode_map(ctx, unpack(ctx, '>I2')) end,
+  [0xdf] = function(ctx) return decode_map(ctx, unpack(ctx, '>I4')) end,
 }
 
 -- add single byte integers
 for i = 0x00, 0x7f do
-  decoder_table[i] = function()
-    return i
-  end
+  decoder_table[i] = function() return i end
 end
 for i = 0xe0, 0xff do
-  decoder_table[i] = function()
-    return -32 + i - 0xe0
-  end
+  decoder_table[i] = function() return -32 + i - 0xe0 end
 end
 
 -- add fixed maps
 for i = 0x80, 0x8f do
-  decoder_table[i] = function(input)
-    return decode_map(input, i - 0x80)
-  end
+  decoder_table[i] = function(ctx) return decode_map(ctx, i - 0x80) end
 end
 
 -- add fixed arrays
 for i = 0x90, 0x9f do
-  decoder_table[i] = function(input)
-    return decode_array(input, i - 0x90)
-  end
+  decoder_table[i] = function(ctx) return decode_array(ctx, i - 0x90) end
 end
 
 -- add fixed strings
 for i = 0xa0, 0xbf do
   local format = string.format('>c%d', i - 0xa0)
-  decoder_table[i] = function(input)
-    return unpack(format, input)
-  end
+  decoder_table[i] = function(ctx) return unpack(ctx, format) end
 end
 
 
@@ -269,12 +259,13 @@ function msgpack.encode(data)
   end
 end
 
-function msgpack.decode(data, position)
-  local input = { data = data, pos = position or 1 }
-  local ok, result = pcall(decode_next, input)
+function msgpack.decode(input, position)
+  local ctx = { input = input, position = position or 1 }
+  local ok, result = pcall(decode_next, ctx)
   if ok then
-    return result, input.pos
+    return result, ctx.position
   else
+    print('E', result)
     return nil, 'cannot decode MessagePack'
   end
 end
