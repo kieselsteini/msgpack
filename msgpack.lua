@@ -31,7 +31,7 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.3.0',
+  _VERSION = '0.4.0',
 
   config = {
     single_precision = false,   -- use 32-bit floats or 64-bit floats
