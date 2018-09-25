@@ -35,7 +35,6 @@ local msgpack = {
 
   config = {
     single_precision = false,   -- use 32-bit floats or 64-bit floats
-    binary_strings = false,     -- encode Lua strings a binary data or string data
   },
 }
 
@@ -49,6 +48,7 @@ local select = select
 local table = require('table')
 local string = require('string')
 local math = require('math')
+local utf8 = require('utf8')
 
 
 --[[----------------------------------------------------------------------------
@@ -166,15 +166,7 @@ encoder_table = {
 
   ['string'] = function(value)
     local length = #value
-    if msgpack.config.binary_strings then
-      if length <= 0xff then
-        return ('>B s1'):pack(0xc4, value)
-      elseif length <= 0xffff then
-        return ('>B s2'):pack(0xc5, value)
-      else
-        return ('>B s4'):pack(0xc6, value)
-      end
-    else
+    if utf8.len(value) then -- valid UTF-8 ... encode as string
       if length < 32 then
         return ('>B'):pack(0xa0 + length) .. value
       elseif length <= 0xff then
@@ -183,6 +175,14 @@ encoder_table = {
         return ('>B s2'):pack(0xda, value)
       else
         return ('>B s4'):pack(0xdb, value)
+      end
+    else -- encode as binary
+      if length <= 0xff then
+        return ('>B s1'):pack(0xc4, value)
+      elseif length <= 0xffff then
+        return ('>B s2'):pack(0xc5, value)
+      else
+        return ('>B s4'):pack(0xc6, value)
       end
     end
   end,

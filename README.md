@@ -9,6 +9,7 @@ Please report any bugs you encounter!
 Features:
 - written in pure Lua 5.3 (using ```string.pack()``` / ```string.unpack()```)
 - can distinguish between integer / float numbers
+- can distinguish between UTF-8 strings and binary data
 - public domain license (http://unlicense.org)
 - pretty fast decoding
 - config variables to switch between string/binary and float32/float64 encoding
@@ -30,8 +31,6 @@ local binary_data = msgpack.encode(lua_value) -- encode Lua value to MessagePack
 ### msgpack.encode_one(value)
 Encodes the given Lua value to a binary MessagePack representation. It will return the binary string on succes or ```nil``` plus an error message if it fails.
 
-Please note that Lua cannot distinguish between UTF-8 strings and binary data. They are just Lua strings. So if you want to encode Lua strings to MessagePack binary data you have to set the config variable.
-
 There is also no way to determine if a Lua number should be encoded as a 32-bit float or 64-bit float. If you want a specific representation, please set the corresponding config variable.
 
 Using 32-bit/64-bit floats to encode Lua numbers:
@@ -40,15 +39,7 @@ msgpack.config.single_precision = true -- encode to 32-bit floats
 msgpack.config.single_precision = false -- encode to 64-bit floats
 ```
 
-Using binary/string type to encode Lua strings:
-```lua
-msgpack.config.binary_strings = true -- use the MessagePack binary type
-msgpack.config.binary_strings = false -- use the MessagePack string type
-```
-
 > **NOTE:** The config variables only affect the encoding process
-
-> **NOTE:** Encoding strings as binary also affects string keys in tables
 
 > **NOTE:** Empty Lua tables will be encoded as empty arrays!
 

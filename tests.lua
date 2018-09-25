@@ -44,7 +44,6 @@ assert(encode(1.0) == ('>B d'):pack(0xcb, 1.0))
 assert(encode(math.pi) == ('>B d'):pack(0xcb, math.pi))
 
 -- strings
-msgpack.config.binary_strings = false
 for i = 0, 31 do
   local str = ('x'):rep(i)
   assert(encode(str) == ('>B'):pack(0xa0 + i) .. str)
@@ -56,16 +55,15 @@ assert(encode(('x'):rep(0xffff)) == ('>B s2'):pack(0xda, ('x'):rep(0xffff)))
 assert(encode(('x'):rep(0x10000)) == ('>B s4'):pack(0xdb, ('x'):rep(0x10000)))
 
 -- binary
-msgpack.config.binary_strings = true
-for i = 0, 31 do
-  local str = ('x'):rep(i)
+for i = 1, 31 do --  strings of length 0 are always strings :)
+  local str = ('\xff'):rep(i)
   assert(encode(str) == ('>B s1'):pack(0xc4, str))
 end
-assert(encode(('x'):rep(32)) == ('>B s1'):pack(0xc4, ('x'):rep(32)))
-assert(encode(('x'):rep(0xff)) == ('>B s1'):pack(0xc4, ('x'):rep(0xff)))
-assert(encode(('x'):rep(0x100)) == ('>B s2'):pack(0xc5, ('x'):rep(0x100)))
-assert(encode(('x'):rep(0xffff)) == ('>B s2'):pack(0xc5, ('x'):rep(0xffff)))
-assert(encode(('x'):rep(0x10000)) == ('>B s4'):pack(0xc6, ('x'):rep(0x10000)))
+assert(encode(('\xff'):rep(32)) == ('>B s1'):pack(0xc4, ('x'):rep(32)))
+assert(encode(('\xff'):rep(0xff)) == ('>B s1'):pack(0xc4, ('x'):rep(0xff)))
+assert(encode(('\xff'):rep(0x100)) == ('>B s2'):pack(0xc5, ('x'):rep(0x100)))
+assert(encode(('\xff'):rep(0xffff)) == ('>B s2'):pack(0xc5, ('x'):rep(0xffff)))
+assert(encode(('\xff'):rep(0x10000)) == ('>B s4'):pack(0xc6, ('x'):rep(0x10000)))
 
 -- arrays
 assert(encode({}) == ('>B'):pack(0x90))
