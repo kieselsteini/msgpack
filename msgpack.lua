@@ -31,7 +31,7 @@
 --]]----------------------------------------------------------------------------
 local msgpack = {
   _AUTHOR = 'Sebastian Steinhauer <s.steinhauer@yahoo.de>',
-  _VERSION = '0.5.0',
+  _VERSION = '0.5.1',
 }
 
 
@@ -40,6 +40,7 @@ local msgpack = {
 --]]----------------------------------------------------------------------------
 local type = type
 local pairs = pairs
+local pcall = pcall
 local select = select
 local table = require('table')
 local string = require('string')
