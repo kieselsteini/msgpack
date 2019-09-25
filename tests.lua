@@ -1,123 +1,242 @@
 --[[----------------------------------------------------------------------------
-      Unit-Tests for my MessagePack implementation
+
+		MessagePack Tests
+
 --]]----------------------------------------------------------------------------
 local msgpack = require('msgpack')
-local encode = msgpack.encode
-local decode = msgpack.decode
-local decode_one = msgpack.decode_one
 
---[[----------------------------------------------------------------------------
-      ENCODER Tests
---]]----------------------------------------------------------------------------
--- simple values
-assert(encode(nil) == '\xc0')
-assert(encode(false) == '\xc2')
-assert(encode(true) == '\xc3')
-
--- positive integers
-for i = 0, 0x7f do assert(encode(i) == string.char(i)) end
-assert(encode(0x80) == ('>B B'):pack(0xcc, 0x80))
-assert(encode(0xff) == ('>B B'):pack(0xcc, 0xff))
-assert(encode(0x100) == ('>B I2'):pack(0xcd, 0x100))
-assert(encode(0xffff) == ('>B I2'):pack(0xcd, 0xffff))
-assert(encode(0x10000) == ('> B I4'):pack(0xce, 0x10000))
-assert(encode(0xffffffff) == ('>B I4'):pack(0xce, 0xffffffff))
-assert(encode(0x100000000) == ('>B I8'):pack(0xcf, 0x100000000))
-
--- negative integers
-for i = -32, -1 do assert(encode(i) == ('>B'):pack(0xe0 + i + 32)) end
-assert(encode(-33) == ('>B i1'):pack(0xd0, -33))
-assert(encode(-127) == ('>B i1'):pack(0xd0, -127))
-assert(encode(-128) == ('>B i2'):pack(0xd1, -128))
-assert(encode(-32767) == ('>B i2'):pack(0xd1, -32767))
-assert(encode(-32768) == ('>B i4'):pack(0xd2, -32768))
-assert(encode(-2147483647) == ('>B i4'):pack(0xd2, -2147483647))
-assert(encode(-2147483648) == ('>B i8'):pack(0xd3, -2147483648))
-
--- floats
-assert(encode(1.0) == ('>B f'):pack(0xca, 1.0))
-assert(encode(math.pi) == ('>B d'):pack(0xcb, math.pi))
-
--- strings
-for i = 0, 31 do
-  local str = ('x'):rep(i)
-  assert(encode(str) == ('>B'):pack(0xa0 + i) .. str)
-end
-assert(encode(('x'):rep(32)) == ('>B s1'):pack(0xd9, ('x'):rep(32)))
-assert(encode(('x'):rep(0xff)) == ('>B s1'):pack(0xd9, ('x'):rep(0xff)))
-assert(encode(('x'):rep(0x100)) == ('>B s2'):pack(0xda, ('x'):rep(0x100)))
-assert(encode(('x'):rep(0xffff)) == ('>B s2'):pack(0xda, ('x'):rep(0xffff)))
-assert(encode(('x'):rep(0x10000)) == ('>B s4'):pack(0xdb, ('x'):rep(0x10000)))
-
--- binary
-for i = 1, 31 do --  strings of length 0 are always strings :)
-  local str = ('\xff'):rep(i)
-  assert(encode(str) == ('>B s1'):pack(0xc4, str))
-end
-assert(encode(('\xff'):rep(32)) == ('>B s1'):pack(0xc4, ('\xff'):rep(32)))
-assert(encode(('\xff'):rep(0xff)) == ('>B s1'):pack(0xc4, ('\xff'):rep(0xff)))
-assert(encode(('\xff'):rep(0x100)) == ('>B s2'):pack(0xc5, ('\xff'):rep(0x100)))
-assert(encode(('\xff'):rep(0xffff)) == ('>B s2'):pack(0xc5, ('\xff'):rep(0xffff)))
-assert(encode(('\xff'):rep(0x10000)) == ('>B s4'):pack(0xc6, ('\xff'):rep(0x10000)))
-
--- arrays
-assert(encode({}) == ('>B'):pack(0x90))
-assert(encode({1, 2}) == ('>B B B'):pack(0x92, 1, 2))
-
--- maps
-assert(encode({[2] = 1}) == ('>B B B'):pack(0x81, 2, 1))
-
-
---[[----------------------------------------------------------------------------
-      DECODER Tests
---]]----------------------------------------------------------------------------
--- simple values
-assert(decode('\xc0') == nil)
-assert(decode('\xc2') == false)
-assert(decode('\xc3') == true)
-
--- positive integers
-for i = 0, 0x7f do assert(decode(string.char(i)) == i) end
-assert(decode('\xcc\xff') == 0xff)
-assert(decode('\xcd\xff\xff') == 0xffff)
-assert(decode('\xce\xff\xff\xff\xff') == 0xffffffff)
-assert(decode('\xcf\xff\xff\xff\xff\xff\xff\xff\xff') == 0xffffffffffffffff)
-
--- negative integers
-assert(decode('\xff') == -1)
-assert(decode('\xe0') == -32)
-assert(decode('\xd0\xdf') == -33)
-assert(decode('\xd0\x81') == -127)
-assert(decode('\xd1\xff\x80') == -128)
-assert(decode('\xd1\x80\x01') == -32767)
-assert(decode('\xd2\xff\xff\x80\x00') == -32768)
-assert(decode('\xd2\x80\x00\x00\x01') == -2147483647)
-assert(decode('\xd3\xff\xff\xff\xff\x80\x00\x00\x00') == -2147483648)
-
--- 64-bit floats
-assert(decode('\xcb\x40\x09\x1e\xb8\x51\xeb\x85\x1f') == 3.14)
-
--- strings
-assert(decode('\xa0') == '')
-assert(decode('\xa1\x41') == 'A')
-assert(decode('\xbf' .. ('A'):rep(31)) == ('A'):rep(31))
-
--- arrays
-assert(#decode('\x90') == 0)
-
--- multiple decodings and start from different positions
+-- do very quick encode / decode tests
 do
-  local binary, value, position = '\xcc\xff\xc2\xc3'
-  value, position = decode_one(binary, position); assert(value == 255) -- decode 2 bytes
-  value, position = decode_one(binary, position); assert(value == false) -- decode 1 byte
-  value, position = decode_one(binary, position); assert(value == true) -- decode 1 byte
-  assert(position == 5) -- 5th byte would be the next in the "stream"
+	local bytes = assert(msgpack.encode(1, -5, math.pi, 'Test!', true, false, { a = 1, b = 2 }))
+	local a, b, c, d, e, f, g = assert(msgpack.decode(bytes))
+	assert(a == 1)
+	assert(b == -5)
+	assert(c == math.pi)
+	assert(d == 'Test!')
+	assert(e == true)
+	assert(f == false)
+	assert(type(g) == 'table')
+	assert(g.a == 1)
+	assert(g.b == 2)
 end
 
--- decode multiple values
+-- checks for online decoder
 do
-  local a, b, c = decode('\xe0\xa1\x41\xc3')
-  assert(a == -32)
-  assert(b == 'A')
-  assert(c == true)
+	local bytes = assert(msgpack.encode({
+		array = { 1, 2, 3, 4, 5, 6 },
+		foo = 'bar',
+		a_true_value = true,
+		a_false_value = false,
+	}))
+	local hex = {}; for i = 1, #bytes do hex[i] = string.format('%02X', string.byte(bytes, i)) end
+	print(table.concat(hex, ' '))
+end
+
+-- test positive fixint
+for i = 0, 0x7f do
+	local bytes = assert(msgpack.encode(i))
+	assert(#bytes == 1, 'invalid size for positive fixint')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == i, 'returned wrong positive fixint')
+end
+
+-- test negative fixint
+for i = -32, -1, -1 do
+	local bytes = assert(msgpack.encode(i))
+	assert(#bytes == 1, 'invalid size for negative fixint')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == i, 'returned wrong negative fixint')
+end
+
+-- test nil
+do
+	local bytes = assert(msgpack.encode(nil))
+	assert(#bytes == 1, 'invalid size for nil')
+	assert(string.byte(bytes) == 0xc0, 'invalid code for nil')
+	local decoded = msgpack.decode(bytes) -- no assert here because it's nil :)
+	assert(decoded == nil)
+end
+
+-- test false
+do
+	local bytes = assert(msgpack.encode(false))
+	assert(#bytes == 1, 'invalid size for false')
+	assert(string.byte(bytes) == 0xc2, 'invalid code for false')
+	local decoded = msgpack.decode(bytes) -- no assert here because it's false :)
+	assert(decoded == false)
+end
+
+-- test true
+do
+	local bytes = assert(msgpack.encode(true))
+	assert(#bytes == 1, 'invalid size for true')
+	assert(string.byte(bytes) == 0xc3, 'invalid code for true')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == true)
+end
+
+-- test unsigned integer
+local function test_uint8(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 2, 'invalid size for uint8')
+	assert(string.byte(bytes) == 0xcc, 'invalid code for uint8')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+local function test_uint16(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 3, 'invalid size for uint16')
+	assert(string.byte(bytes) == 0xcd, 'invalid code for uint16')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+local function test_uint32(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 5, 'invalid size for uint32')
+	assert(string.byte(bytes) == 0xce, 'invalid code for uint32')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+local function test_uint64(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 9, 'invalid size for uint64')
+	assert(string.byte(bytes) == 0xcf, 'invalid code for uint64')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+test_uint8(128)
+test_uint8(255)
+test_uint16(256)
+test_uint16(65535)
+test_uint32(65536)
+test_uint32(4294967295)
+test_uint64(4294967296)
+test_uint64(4294967296 * 10)
+
+-- test signed integer
+local function test_int8(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 2, 'invalid size for int8')
+	assert(string.byte(bytes) == 0xd0, 'invalid code for int8')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+local function test_int16(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 3, 'invalid size for int16')
+	assert(string.byte(bytes) == 0xd1, 'invalid code for int16')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+local function test_int32(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 5, 'invalid size for int32')
+	assert(string.byte(bytes) == 0xd2, 'invalid code for int32')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+local function test_int64(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 9, 'invalid size for int64')
+	assert(string.byte(bytes) == 0xd3, 'invalid code for int64')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+test_int8(-33)
+test_int8(-128)
+test_int16(-129)
+test_int16(-32768)
+test_int32(-32769)
+test_int32(-2147483648)
+test_int64(-2147483649)
+test_int64(-2147483649 * 10)
+
+-- test floating points
+local function test_float(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 5, 'invalid size for float')
+	assert(string.byte(bytes) == 0xca, 'invalid code for float')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+local function test_double(value)
+	local bytes = assert(msgpack.encode(value))
+	assert(#bytes == 9, 'invalid size for double')
+	assert(string.byte(bytes) == 0xcb, 'invalid code for double')
+	local decoded = assert(msgpack.decode(bytes))
+	assert(decoded == value)
+end
+
+test_float(1.0)
+test_float(2.5)
+test_double(math.pi)
+
+-- test fixarray
+for i = 0, 15 do
+	local array = {}; for j = 1, i do array[j] = j end -- prepare test array
+	local bytes = assert(msgpack.encode(array))
+	assert(string.byte(bytes) == 0x90 + i)
+	array = assert(msgpack.decode(bytes))
+	for j = 1, i do assert(array[j] == j) end
+end
+
+-- test fixmap
+for i = 1, 15 do -- map with size 0 will be encoded as an array, so we start at 1
+	local array = {}; for j = 1, i do array['item_' .. j] = j end -- prepare test array
+	local bytes = assert(msgpack.encode(array))
+	assert(string.byte(bytes) == 0x80 + i)
+	array = assert(msgpack.decode(bytes))
+	for j = 1, i do assert(array['item_' .. j] == j) end
+end
+
+-- test array 16
+do
+	local array = {}; for i = 1, 1024 do array[i] = i end -- prepare test array
+	local bytes = assert(msgpack.encode(array))
+	assert(string.byte(bytes) == 0xdc)
+	array = assert(msgpack.decode(bytes))
+	for i = 1, 128 do assert(array[i], i) end
+end
+
+-- test array 32
+do
+	local array = {}; for i = 1, 1024 * 128 do array[i] = i end -- prepare test array
+	local bytes = assert(msgpack.encode(array))
+	assert(string.byte(bytes) == 0xdd)
+	array = assert(msgpack.decode(bytes))
+	for i = 1, 1024 * 128 do assert(array[i], i) end
+end
+
+-- test map 16
+do
+	local map = {}; for i = 1, 1024 do map['item_' .. i] = i end -- prepare test map
+	local bytes = assert(msgpack.encode(map))
+	assert(string.byte(bytes) == 0xde)
+	map = assert(msgpack.decode(bytes))
+	for i = 1, 128 do assert(map['item_' .. i], i) end
+end
+
+-- test map 32
+do
+	local map = {}; for i = 1, 1024 * 128 do map['item_' .. i] = i end -- prepare test map
+	local bytes = assert(msgpack.encode(map))
+	assert(string.byte(bytes) == 0xdf)
+	map = assert(msgpack.decode(bytes))
+	for i = 1, 1024 * 128 do assert(map['item_' .. i], i) end
+end
+
+-- test the payload from msgpack.org :)
+do
+	local bytes = assert(msgpack.encode({ compact = true, schema = 0 }))
+	local check = { 0x82, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3 }
+	for i = 1, #bytes do assert(string.byte(bytes, i) == check[i]) end
 end
