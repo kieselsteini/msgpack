@@ -6,7 +6,7 @@
 local msgpack = require('msgpack')
 
 -- do very quick encode / decode tests
-if true then
+do
 	local bytes = assert(msgpack.encode(1, -5, math.pi, 'Test!', true, false, { a = 1, b = 2 }))
 	local a, b, c, d, e, f, g = assert(msgpack.decode(bytes))
 	assert(a == 1)
@@ -19,20 +19,6 @@ if true then
 	assert(g.a == 1)
 	assert(g.b == 2)
 end
-
---[[--
--- checks for online decoder
-do
-	local bytes = assert(msgpack.encode({
-		array = { 1, 2, 3, 4, 5, 6 },
-		foo = 'bar',
-		a_true_value = true,
-		a_false_value = false,
-	}))
-	local hex = {}; for i = 1, #bytes do hex[i] = string.format('%02X', string.byte(bytes, i)) end
-	print(table.concat(hex, ' '))
-end
---]]--
 
 -- test positive fixint
 for i = 0, 0x7f do
@@ -51,7 +37,7 @@ for i = -32, -1, -1 do
 end
 
 -- test nil
-if true then
+do
 	local bytes = assert(msgpack.encode(nil))
 	assert(#bytes == 1, 'invalid size for nil')
 	assert(string.byte(bytes) == 0xc0, 'invalid code for nil')
@@ -60,7 +46,7 @@ if true then
 end
 
 -- test false
-if true then
+do
 	local bytes = assert(msgpack.encode(false))
 	assert(#bytes == 1, 'invalid size for false')
 	assert(string.byte(bytes) == 0xc2, 'invalid code for false')
@@ -69,7 +55,7 @@ if true then
 end
 
 -- test true
-if true then
+do
 	local bytes = assert(msgpack.encode(true))
 	assert(#bytes == 1, 'invalid size for true')
 	assert(string.byte(bytes) == 0xc3, 'invalid code for true')
@@ -201,7 +187,7 @@ for i = 1, 15 do -- map with size 0 will be encoded as an array, so we start at 
 end
 
 -- test array 16
-if true then
+do
 	local array = {}; for i = 1, 1024 do array[i] = i end -- prepare test array
 	local bytes = assert(msgpack.encode(array))
 	assert(string.byte(bytes) == 0xdc)
@@ -210,7 +196,7 @@ if true then
 end
 
 -- test array 32
-if true then
+do
 	local array = {}; for i = 1, 1024 * 128 do array[i] = i end -- prepare test array
 	local bytes = assert(msgpack.encode(array))
 	assert(string.byte(bytes) == 0xdd)
@@ -219,7 +205,7 @@ if true then
 end
 
 -- test map 16
-if true then
+do
 	local map = {}; for i = 1, 1024 do map['item_' .. i] = i end -- prepare test map
 	local bytes = assert(msgpack.encode(map))
 	assert(string.byte(bytes) == 0xde)
@@ -228,7 +214,7 @@ if true then
 end
 
 -- test map 32
-if true then
+do
 	local map = {}; for i = 1, 1024 * 128 do map['item_' .. i] = i end -- prepare test map
 	local bytes = assert(msgpack.encode(map))
 	assert(string.byte(bytes) == 0xdf)
@@ -306,11 +292,3 @@ test_bin8(string.rep(string.char(255), 255))
 test_bin16(string.rep(string.char(255), 256))
 test_bin16(string.rep(string.char(255), 65535))
 test_bin32(string.rep(string.char(255), 65536))
-
-
--- test the payload from msgpack.org :)
-if true then
-	local bytes = assert(msgpack.encode({ compact = true, schema = 0 }))
-	local check = { 0x82, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3 }
-	--for i = 1, #bytes do assert(string.byte(bytes, i) == check[i]) end
-end
