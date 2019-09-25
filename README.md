@@ -8,7 +8,7 @@ Please report any bugs you encounter!
 
 Features:
 - written in pure Lua 5.3 (using ```string.pack()``` / ```string.unpack()```)
-- can distinguish between integer / float numbers
+- can distinguish between integer / float / double numbers
 - can distinguish between UTF-8 strings and binary data
 - public domain license (http://unlicense.org)
 - pretty fast decoding
